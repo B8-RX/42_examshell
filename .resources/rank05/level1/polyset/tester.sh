@@ -47,9 +47,10 @@ cp subject/*.cpp "$TMP_USER/"
 cp subject/*.hpp "$TMP_USER/"
 cp "$USER_DIR"/*.cpp "$TMP_USER/"
 cp "$USER_DIR"/*.hpp "$TMP_USER/"
+cp main.cpp "$TMP_USER/test_main.cpp"\
 
 g++ -Wall -Wextra -Werror -std=c++98 \
-  main.cpp \
+  "$TMP_USER/test_main.cpp" \
   "$TMP_USER/array_bag.cpp" \
   "$TMP_USER/tree_bag.cpp" \
   "$TMP_USER/searchable_array_bag.cpp" \
@@ -67,10 +68,12 @@ echo -e "${GREEN}✅ User compilation successful!${NC}"
 echo ""
 
 # Run both and capture output
+TEST_ARGS="10 20 30"
+
 echo -e "${BLUE}🚀 Running tests...${NC}"
-./ref_polyset > ref_output.txt 2>&1
+./ref_polyset $TEST_ARGS > ref_output.txt 2>&1
 echo "[DEBUG] Reference output:"; cat ref_output.txt
-./user_polyset > user_output.txt 2>&1
+./user_polyset $TEST_ARGS > user_output.txt 2>&1
 echo "[DEBUG] User output:"; cat user_output.txt
 
 # Compare outputs
@@ -102,7 +105,7 @@ valgrind_output=$(valgrind \
     --track-origins=yes \
     -s \
     --error-exitcode=1 \
-    ./user_polyset 2>&1)
+    ./user_polyset $TEST_ARGS 2>&1)
 
 exit_code=$?
 

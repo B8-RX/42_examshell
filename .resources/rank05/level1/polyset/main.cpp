@@ -51,6 +51,7 @@ int main(int argc, char **argv)
 		sa.insert(values, 4);
 		std::cout << std::endl;
 	}
-
+	delete a;
+	delete t;
 	return (0);
 }
