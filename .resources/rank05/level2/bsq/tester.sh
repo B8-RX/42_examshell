@@ -31,7 +31,6 @@ USER_DIR="../../../../rendu/bsq"
 
 # Check if user solution exists
 TMP_USER=$(mktemp -d)
-"$TMP_USER"=""
 
 if [ ! -d "$USER_DIR" ]; then
     echo -e "${RED}❌ User rendu folder not found!${NC}"
@@ -42,7 +41,7 @@ cp "$USER_DIR"/*.c "$TMP_USER/" 2>/dev/null
 cp "$USER_DIR"/*.h "$TMP_USER/" 2>/dev/null
 
 USER_H_FILES=$(find "$TMP_USER" -name "*.h")
-USER_C_FILES=$(find "$TMP_USER" -name "*.c" ! -name "main.c")
+USER_C_FILES=$(find "$TMP_USER" -name "*.c")
 if [ -z "$USER_C_FILES" ] || [ -z "$USER_H_FILES" ]; then
     echo -e "${RED}❌ User solution not found: No .c or .h files${NC}"
     exit 1
@@ -60,8 +59,7 @@ echo ""
 
 # Compile user solution
 echo -e "${BLUE}📦 Compiling user solution...${NC}"
-gcc -Wall -Wextra -Werror -std=c99 \
-    main.c \
+gcc -Wall -Wextra -Werror -std=gnu99 \
     $USER_C_FILES \
   -I"$TMP_USER" \
   -o user_bsq
@@ -109,7 +107,15 @@ run_test() {
     local file=$2
     echo -e "${BLUE}🚀 Running Test $num...${NC}"
     ./ref_bsq "$file" > "ref_output${num}.txt" 2>&1
-    ./user_bsq "$file" > "user_output${num}.txt" 2>&1
+    timeout 2 ./user_bsq "$file" > "user_output${num}.txt" 2>&1
+    status=$?
+    if [ $status -eq 124 ]; then
+        echo -e "${RED}❌ User program timed out (possible infinite loop)${NC}"
+        exit 1
+    elif [ $status -ne 0 ]; then
+        echo -e "${RED}❌ User program crashed (exit code $status)${NC}"
+        exit 1
+    fi
 
     if diff -q "ref_output${num}.txt" "user_output${num}.txt" > /dev/null; then
         echo -e "${GREEN}✅ Test $num output matches reference!${NC}"
