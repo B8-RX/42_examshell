@@ -7,36 +7,50 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+
+# Cleanup temporary files
+cleanup() {
+    rm -rf ref_bsq user_bsq \
+        ref_output1.txt ref_output2.txt ref_output3.txt ref_output4.txt \
+        user_output1.txt user_output2.txt user_output3.txt user_output4.txt \
+        test1.map test2.map test3.map \
+        
+        if [ -n "$TMP_USER" ]; then
+            rm -rf "$TMP_USER"
+        fi
+};
+
+trap cleanup EXIT INT TERM
+
 echo -e "${BLUE}🔍 Running COMPREHENSIVE TESTING for bsq${NC}"
 echo "=========================================="
 echo ""
 
 # Paths
-RANDOM_FOLDER="../../../../rendu/bsq"
+USER_DIR="../../../../rendu/bsq"
 
 # Check if user solution exists
-if [ ! -d "$RANDOM_FOLDER" ]; then
+TMP_USER=$(mktemp -d)
+"$TMP_USER"=""
+
+if [ ! -d "$USER_DIR" ]; then
     echo -e "${RED}❌ User rendu folder not found!${NC}"
     exit 1
 fi
 
-USER_C_FILES=$(find "$RANDOM_FOLDER" -name "*.c")
-USER_H_FILES=$(find "$RANDOM_FOLDER" -name "*.h")
+cp "$USER_DIR"/*.c "$TMP_USER/" 2>/dev/null
+cp "$USER_DIR"/*.h "$TMP_USER/" 2>/dev/null
 
+USER_H_FILES=$(find "$TMP_USER" -name "*.h")
+USER_C_FILES=$(find "$TMP_USER" -name "*.c" ! -name "main.c")
 if [ -z "$USER_C_FILES" ] || [ -z "$USER_H_FILES" ]; then
     echo -e "${RED}❌ User solution not found: No .c or .h files${NC}"
     exit 1
 fi
 
-# Copy tester main to temporary file
-cp main.c temp_main.c
-
-# Copy user files into working folder
-cp "$RANDOM_FOLDER"/* .
-
 # Compile reference solution
 echo -e "${BLUE}📦 Compiling reference solution...${NC}"
-gcc -Wall -Wextra -Werror -std=c99 -o ref_bsq temp_main.c bsq.c
+gcc -Wall -Wextra -Werror -std=c99 -o ref_bsq main.c bsq.c
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Reference compilation failed!${NC}"
     exit 1
@@ -46,7 +60,12 @@ echo ""
 
 # Compile user solution
 echo -e "${BLUE}📦 Compiling user solution...${NC}"
-gcc -Wall -Wextra -Werror -std=c99 -o user_bsq temp_main.c bsq.c
+gcc -Wall -Wextra -Werror -std=c99 \
+    main.c \
+    $USER_C_FILES \
+  -I"$TMP_USER" \
+  -o user_bsq
+
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ User compilation failed!${NC}"
     exit 1
@@ -138,11 +157,8 @@ fi
 # Summary
 echo "======================================="
 if [ "$tests_passed" = true ]; then
-    echo -e "${GREEN}✅ PASSED!${NC}"
+    echo -e "${GREEN}✅ ALL TESTS PASSED!${NC}"
 else
     echo -e "${RED}❌ SOME TESTS FAILED!${NC}"
 fi
 echo "======================================="
-
-# Cleanup
-rm -f temp_main.c user_bsq ref_bsq
